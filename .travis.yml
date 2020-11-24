@@ -1,8 +1,10 @@
 language: erlang
-dist: xenial
+dist: focal
 sudo: required
 addons:
     apt:
+        sources:
+        - sourceline: 'ppa:chris-lea/redis-server'
         packages:
         - libpam0g-dev
         - libexpat1-dev
@@ -12,6 +14,8 @@ addons:
         - golang # used for google drive test results upload
         - unixodbc  # for mssql
         - tdsodbc   # for mssql
+        - redis-tools
+        - redis-server
     hosts:
         # travis tries to resolve muc.localhost and fails
         # used in MUC + s2s tests combination
@@ -33,7 +37,7 @@ install:
         - test 1 = "$SKIP_COMPILE" || make certs
         - test 1 = "$SKIP_RELEASE" || ./tools/build-releases.sh
         - test 1 = "$SKIP_BUILD_TESTS" || tools/travis-build-tests.sh
-        - test 1 = "$SKIP_COV" || travis_retry pip install --user codecov
+        - test 1 = "$SKIP_COV" || travis_retry pip3 install --user codecov
           # Update cache if needed and if build step succeded.
         - test 1 = "$SKIP_COMPILE" || ./tools/cache-build.sh store
         - test 1 = "$SKIP_BUILD_TESTS" || ./tools/cache-tests.sh store
@@ -70,6 +74,7 @@ after_script:
             tools/travis-secure-erase.sh /tmp/serviceAccountCredentials
 
 services:
+        - redis
         - redis-server
         - docker
 
@@ -80,7 +85,7 @@ branches:
                 - /^\d+\.\d+\.\d+([a-z0-9\-\+])*/
 
 otp_release:
-        - 23.0.3
+        - 23.0
 
 env:
   global:

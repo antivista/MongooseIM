@@ -35,8 +35,10 @@ jobs:
           name: Prepare for cache
           command: echo $ERLANG_VERSION > otp_version
       - restore_cache:
+          name: Maybe restore whole build
           key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
       - restore_cache:
+          name: Maybe restore all rebar3 dependencies
           key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
       - run:
           name: Get deps
@@ -44,8 +46,11 @@ jobs:
             tools/configure with-all
             ./rebar3 get-deps
       - save_cache:
+          name: Cache downloaded and built dependencies
           key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
-          paths: ~/.cache/rebar3
+          paths:
+            - ~/.cache/rebar3
+            - ./_build/default/
       - run: ./rebar3 compile
       - run: make certs
       - run:
@@ -56,8 +61,7 @@ jobs:
           command: if [ <<parameters.build_prod>> ]; then make rel; fi
       - run:
           name: Build Big Tests
-          command: |
-            tools/travis-build-tests.sh
+          command: tools/travis-build-tests.sh
       - save_cache:
           key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
           paths: ./

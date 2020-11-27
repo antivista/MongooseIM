@@ -232,10 +232,49 @@ jobs:
           name: Execute Docker image build and upload
           command: tools/circle-build-and-push-docker.sh
 
+  package:
+    parallelism: 1
+    docker:
+      - image: cimg/elixir:1.11
+    working_directory: ~/app
+    parameters:
+      erlang_version:
+        type: string
+        default: "1.11"
+      platform:
+        type: enum
+        enum: [centos_7, debian_stretch]
+        description: Platform type
+      otp_package:
+        type: string
+        description: Version of the Erlang package to install
+    environment:
+      pkg_PLATFORM: <<parameters.platform>>
+      ESL_ERLANG_PKG_VER: <<parameters.otp_package>>
+      PRESET: pkg
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build package
+          command: |
+            KEEP_COVER_RUNNING=1 ./tools/travis-test.sh -p pkg -s false
+
 workflows:
   version: 2
   build_and_test:
     jobs:
+      # ============= PACKAGES =============
+      - package:
+          name: centos_7
+          platform: centos_7
+          context: mongooseim-org
+          otp_package: 23.1-1
+      - package:
+          name: debian_stretch
+          platform: debian_stretch
+          context: mongooseim-org
+          otp_package: 23.1-1
       # ============= BASE BUILDS =============
       - build:
           name: otp_23

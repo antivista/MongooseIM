@@ -28,9 +28,12 @@ commands:
 jobs:
   build:
     docker:
-      - image: cimg/elixir:1.11
+      - image: cimg/elixir:<< parameters.erlang_version >>
     parallelism: 1
     parameters:
+      erlang_version:
+        type: string
+        default: "1.11"
       build_prod:
         type: boolean
         default: false
@@ -232,6 +235,17 @@ workflows:
       # ============= BASE BUILDS =============
       - build:
           name: otp_23
+          erlang_version: "1.11" # Contains Erlang 23.1
+          context: mongooseim-org
+          build_prod: true
+      - build:
+          name: otp_22
+          erlang_version: "1.10" # Contains Erlang 22.3.4
+          context: mongooseim-org
+          build_prod: true
+      - build:
+          name: otp_21
+          erlang_version: "1.8.2" # Contains Erlang 21.3.8.8
           context: mongooseim-org
           build_prod: true
       # ============= SMALL TESTS =============
@@ -240,6 +254,16 @@ workflows:
           context: mongooseim-org
           requires:
             - otp_23
+      - small_tests:
+          name: small_tests_22
+          context: mongooseim-org
+          requires:
+            - otp_22
+      - small_tests:
+          name: small_tests_21
+          context: mongooseim-org
+          requires:
+            - otp_21
       # ============= MOST RECENT VERSION TESTS =============
       - big_tests:
           name: internal_mnesia
@@ -261,6 +285,8 @@ workflows:
           context: mongooseim-org
           requires:
             - otp_23
+            - small_tests_23
+            - small_tests_22
+            - small_tests_21
+            - dialyzer
             # - internal_mnesia
-            # - small_tests_23
-            # - dialyzer

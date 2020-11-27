@@ -90,7 +90,6 @@ jobs:
           name: Coverage
           when: on_success
           command: |
-            echo "Success!"
             pip3 install codecov && codecov
             ./rebar3 codecov analyze
             codecov --disable=gcov --env PRESET
@@ -108,6 +107,13 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
+      - run:
+          name: Prepare for cache
+          command: echo $ERLANG_VERSION > otp_version
+      - restore_cache:
+          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
+      - restore_cache:
+          key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
       - run:
           name: Run Dialyzer
           command: |
@@ -226,9 +232,15 @@ workflows:
           tls_dist: true
           requires:
             - otp_23
+      # ============= DIALYZER =============
+      - dialyzer:
+          name: dialyzer
+          requires:
+            - otp_23
       # ============= DOCKER IMAGE BUILD & UPLOAD =============
       - docker_image:
           name: docker_build_and_ship
           requires:
             - internal_mnesia
             - small_tests_23
+            - dialyzer

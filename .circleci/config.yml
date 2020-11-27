@@ -46,7 +46,7 @@ jobs:
       - fetch_build_packages
       - run:
           name: Prepare for cache
-          command: echo $ERLANG_VERSION > otp_version
+          command: echo $ERLANG_VERSION && echo $ERLANG_VERSION > otp_version
       - restore_cache:
           name: Maybe restore whole build
           key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}

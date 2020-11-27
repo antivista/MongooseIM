@@ -13,7 +13,7 @@ commands:
           sudo killall -9 apt-get || true && \
           echo "Acquire::ForceIPv4 'true';" | sudo tee -a /etc/apt/apt.conf.d/99force-ipv4 && \
           sudo apt-get update && \
-          sudo apt-get install libssl-dev unixodbc-dev unixodbc tdsodbc rsync -y
+          sudo apt-get install libssl-dev unixodbc-dev unixodbc tdsodbc rsync zlib1g-dev -y
   fetch_coverage_packages:
     steps:
     - run:

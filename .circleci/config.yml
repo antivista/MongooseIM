@@ -114,10 +114,8 @@ jobs:
             SKIP_AUTO_COMPILE=true KEEP_COVER_RUNNING=1 ./tools/travis-test.sh -p dialyzer_only -s false
 
   big_tests:
-    machine:
-      image: ubuntu-2004:202010-01
-    # docker:
-    #   - image: cimg/elixir:1.11
+    docker:
+      - image: cimg/elixir:1.11
     parallelism: 1
     working_directory: ~/app
     parameters:

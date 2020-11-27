@@ -37,7 +37,7 @@ jobs:
       build_prod:
         type: boolean
         default: false
-    working_directory: /mnt/ramdisk
+    working_directory: ~/app
     environment:
       SKIP_RELEASE: 1
       SKIP_COV: 0
@@ -75,9 +75,6 @@ jobs:
       - run:
           name: Build Big Tests
           command: tools/travis-build-tests.sh
-      - run:
-          name: Copy RAM builds
-          command: mkdir ~/app && cp -a ./ ~/app
       - save_cache:
           key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
           paths: ~/app

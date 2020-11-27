@@ -205,11 +205,12 @@ jobs:
 
   docker_image:
     parallelism: 1
-    machine:
-      image: ubuntu-2004:202010-01
+    docker:
+      - image: cimg/elixir:1.11
     working_directory: ~/app
     steps:
       - checkout
+      - setup_remote_docker
       - run:
           name: Prepare for cache
           command: |
@@ -259,6 +260,7 @@ workflows:
           name: docker_build_and_ship
           context: mongooseim-org
           requires:
-            - internal_mnesia
-            - small_tests_23
-            - dialyzer
+            - otp_23
+            # - internal_mnesia
+            # - small_tests_23
+            # - dialyzer

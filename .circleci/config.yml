@@ -140,6 +140,9 @@ jobs:
     docker:
       - image: cimg/elixir:1.11
       - image: circleci/redis:6.0.5
+        name: "mongooseim-redis"
+      - image: rabbitmq:3.7-alpine
+        name: "mongooseim-rmq"
     parallelism: 1
     working_directory: ~/app
     parameters:

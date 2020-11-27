@@ -4,6 +4,17 @@ filters: &all_tags
   tags:
     only: /^\d+\.\d+\.\d+([a-z0-9\-\+])*/
 
+commands:
+  fetch_packages:
+    steps:
+    - run:
+        name: Install basic packages
+        command: |
+          sudo killall -9 apt-get || true && \
+          echo "Acquire::ForceIPv4 'true';" | sudo tee -a /etc/apt/apt.conf.d/99force-ipv4 && \
+          sudo apt-get update && \
+          sudo apt-get install libssl-dev unixodbc-dev unixodbc tdsodbc rsync -y
+
 jobs:
   build:
     docker:
@@ -19,6 +30,7 @@ jobs:
       SKIP_COV: 0
     steps:
       - checkout
+      - fetch_packages
       - run:
           name: Prepare for cache
           command: echo $ERLANG_VERSION > otp_version

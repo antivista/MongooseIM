@@ -231,15 +231,18 @@ workflows:
       # ============= BASE BUILDS =============
       - build:
           name: otp_23
+          context: mongooseim-org
           build_prod: true
       # ============= SMALL TESTS =============
       - small_tests:
           name: small_tests_23
+          context: mongooseim-org
           requires:
             - otp_23
       # ============= MOST RECENT VERSION TESTS =============
       - big_tests:
           name: internal_mnesia
+          context: mongooseim-org
           preset: internal_mnesia
           db: "mnesia"
           tls_dist: true
@@ -248,11 +251,13 @@ workflows:
       # ============= DIALYZER =============
       - dialyzer:
           name: dialyzer
+          context: mongooseim-org
           requires:
             - otp_23
       # ============= DOCKER IMAGE BUILD & UPLOAD =============
       - docker_image:
           name: docker_build_and_ship
+          context: mongooseim-org
           requires:
             - internal_mnesia
             - small_tests_23

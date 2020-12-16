@@ -34,32 +34,11 @@ commands:
             rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           environment:
             DOCKERIZE_VERSION: v0.6.1
-
-jobs:
-  build:
-    docker:
-      - image: cimg/elixir:<< parameters.erlang_version >>
-    parallelism: 1
-    parameters:
-      erlang_version:
-        type: string
-        default: "1.11"
-      build_prod:
-        type: boolean
-        default: false
-    working_directory: ~/app
-    environment:
-      SKIP_RELEASE: 1
-      SKIP_COV: 0
+  maybe_build_deps_and_cache:
     steps:
-      - checkout
-      - fetch_build_packages
       - run:
           name: Prepare for cache
           command: echo $ERLANG_VERSION && echo $ERLANG_VERSION > otp_version
-      - restore_cache:
-          name: Maybe restore whole build
-          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
       - restore_cache:
           name: Maybe restore all rebar3 dependencies
           key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
@@ -74,6 +53,47 @@ jobs:
           paths:
             - ~/.cache/rebar3
             - ./_build/default/
+  restore_build:
+    steps:
+      - run:
+          name: Prepare for cache
+          command: echo $ERLANG_VERSION > otp_version
+      - restore_cache:
+          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
+      - restore_cache:
+          key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
+
+executors:
+  otp_23:
+    docker:
+      - image: cimg/elixir:1.11  # Contains Erlang 23.1
+    working_directory: ~/app
+  otp_22:
+    docker:
+      - image: cimg/elixir:1.10  # Contains Erlang 22.3.4
+    working_directory: ~/app
+  otp_21:
+    docker:
+      - image: cimg/elixir:1.8.2 # Contains Erlang 21.3.8.8
+    working_directory: ~/app
+
+jobs:
+  build:
+    parallelism: 1
+    executor: << parameters.executor >>
+    parameters:
+      executor:
+        type: executor
+      build_prod:
+        type: boolean
+        default: false
+    environment:
+      SKIP_RELEASE: 1
+      SKIP_COV: 0
+    steps:
+      - checkout
+      - fetch_build_packages
+      - maybe_build_deps_and_cache
       - run: ./rebar3 compile
       - run: make certs
       - run:
@@ -90,25 +110,16 @@ jobs:
           paths: ~/app
 
   small_tests:
-    docker:
-      - image: cimg/elixir:<< parameters.erlang_version >>
+    executor: << parameters.executor >>
     parameters:
-      erlang_version:
-        type: string
-        default: "1.11"
+      executor:
+        type: executor
     parallelism: 1
-    working_directory: ~/app
     environment:
       PRESET: small_tests
     steps:
       - checkout
-      - run:
-          name: Prepare for cache
-          command: echo $ERLANG_VERSION > otp_version
-      - restore_cache:
-          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
-      - restore_cache:
-          key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
+      - restore_build
       - run:
           name: Run Small Tests
           command: |
@@ -131,30 +142,22 @@ jobs:
     docker:
       - image: cimg/elixir:1.11
     parallelism: 1
-    working_directory: ~/app
     steps:
       - checkout
-      - run:
-          name: Prepare for cache
-          command: echo $ERLANG_VERSION > otp_version
-      - restore_cache:
-          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
-      - restore_cache:
-          key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
+      - restore_build
       - run:
           name: Run Dialyzer
           command: |
             SKIP_AUTO_COMPILE=true KEEP_COVER_RUNNING=1 ./tools/travis-test.sh -p dialyzer_only -s false
 
   big_tests:
+    executor: << parameters.executor >>
     docker:
-      - image: cimg/elixir:1.11
       - image: circleci/redis:6.0.5
-      # - image: circleci/redis:3.2.11
-      # - image: rabbitmq:3.7-alpine
     parallelism: 1
-    working_directory: ~/app
     parameters:
+      executor:
+        type: executor
       preset:
         type: enum
         enum: [internal_mnesia, mysql_redis, odbc_mssql_mnesia, ldap_mnesia,
@@ -179,13 +182,7 @@ jobs:
       REDIS_VERSION: 3.2.10
     steps:
       - checkout
-      - run:
-          name: Prepare for cache
-          command: echo $ERLANG_VERSION > otp_version
-      - restore_cache:
-          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
-      - restore_cache:
-          key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
+      - restore_build
       - install_dockerize
       - run:
           name: Setup database
@@ -195,6 +192,7 @@ jobs:
             echo '127.0.0.1 muc.localhost' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost.bis' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost' | sudo tee -a /etc/hosts
+            redis-cli -h "127.0.0.1" ping
             # tools/travis-setup-db.sh
             # if [ $PRESET = ldap_mnesia ]; then sudo tools/travis-setup-ldap.sh; fi
       - run:
@@ -228,20 +226,10 @@ jobs:
     parallelism: 1
     docker:
       - image: cimg/elixir:1.11
-    working_directory: ~/app
     steps:
       - checkout
       - setup_remote_docker
-      - run:
-          name: Prepare for cache
-          command: |
-            echo $ERLANG_VERSION > otp_version
-      - restore_cache:
-          keys:
-            - build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
-      - restore_cache:
-          keys:
-            - deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
+      - restore_build
       - run:
           name: Execute Docker image build and upload
           command: tools/circle-build-and-push-docker.sh
@@ -250,11 +238,7 @@ jobs:
     parallelism: 1
     docker:
       - image: cimg/elixir:1.11
-    working_directory: ~/app
     parameters:
-      erlang_version:
-        type: string
-        default: "1.11"
       platform:
         type: enum
         enum: [centos_7, debian_stretch]
@@ -292,41 +276,42 @@ workflows:
       # ============= BASE BUILDS =============
       - build:
           name: otp_23
-          erlang_version: "1.11" # Contains Erlang 23.1
+          executor: otp_23
           context: mongooseim-org
           build_prod: true
       # - build:
       #     name: otp_22
-      #     erlang_version: "1.10" # Contains Erlang 22.3.4
+      #     executor: otp_22
       #     context: mongooseim-org
       #     build_prod: true
       # - build:
       #     name: otp_21
-      #     erlang_version: "1.8.2" # Contains Erlang 21.3.8.8
+      #     executor: otp_21
       #     context: mongooseim-org
       #     build_prod: true
       # ============= SMALL TESTS =============
       # - small_tests:
       #     name: small_tests_23
-      #     erlang_version: "1.11" # Contains Erlang 23.1
+      #     executor: otp_23
       #     context: mongooseim-org
       #     requires:
       #       - otp_23
       # - small_tests:
       #     name: small_tests_22
-      #     erlang_version: "1.10" # Contains Erlang 22.3.4
+      #     executor: otp_22
       #     context: mongooseim-org
       #     requires:
       #       - otp_22
       # - small_tests:
       #     name: small_tests_21
-      #     erlang_version: "1.8.2" # Contains Erlang 21.3.8.8
+      #     executor: otp_21
       #     context: mongooseim-org
       #     requires:
       #       - otp_21
       # ============= MOST RECENT VERSION TESTS =============
       - big_tests:
           name: internal_mnesia
+          executor: otp_21
           context: mongooseim-org
           preset: internal_mnesia
           db: "mnesia"
@@ -336,6 +321,7 @@ workflows:
       # ============= DIALYZER =============
       # - dialyzer:
       #     name: dialyzer
+      #     executor: otp_23
       #     context: mongooseim-org
       #     requires:
       #       - otp_23

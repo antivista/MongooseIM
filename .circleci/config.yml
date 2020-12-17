@@ -220,8 +220,10 @@ jobs:
 
   docker_image:
     parallelism: 1
-    docker:
-      - image: cimg/elixir:1.11
+    executor: << parameters.executor >>
+    parameters:
+      executor:
+        type: executor
     steps:
       - checkout
       - setup_remote_docker
@@ -232,9 +234,10 @@ jobs:
 
   package:
     parallelism: 1
-    docker:
-      - image: cimg/elixir:1.11
+    executor: << parameters.executor >>
     parameters:
+      executor:
+        type: executor
       platform:
         type: enum
         enum: [centos_7, debian_stretch]
@@ -279,12 +282,10 @@ workflows:
       #     name: otp_22
       #     executor: otp_22
       #     context: mongooseim-org
-      #     build_prod: true
       # - build:
       #     name: otp_21
       #     executor: otp_21
       #     context: mongooseim-org
-      #     build_prod: true
       # ============= SMALL TESTS =============
       # - small_tests:
       #     name: small_tests_23
@@ -324,6 +325,7 @@ workflows:
       # ============= DOCKER IMAGE BUILD & UPLOAD =============
       # - docker_image:
       #     name: docker_build_and_ship
+      #     executor: otp_23
       #     context: mongooseim-org
       #     requires:
       #       - otp_23

@@ -24,6 +24,23 @@ commands:
           sudo apt-get update && \
           sudo apt-get install python3-pip -y && \
           pip3 install codecov && codecov
+  upload_results_to_aws:
+    steps:
+      - run:
+          name: Upload results
+          when: always
+          command: |
+              tools/circleci-prepare-log-dir.sh
+              if [ -n "${AWS_SECRET_ACCESS_KEY}" ]; then tools/circleci-upload-to-s3.sh; fi
+  run_coverage_analysis:
+    steps:
+      - run:
+          name: Coverage
+          when: on_success
+          command: |
+            echo "Success!"
+            ./rebar3 codecov analyze
+            codecov --disable=gcov --env PRESET
   install_dockerize:
     steps:
       - run:
@@ -125,18 +142,8 @@ jobs:
           command: |
             SKIP_AUTO_COMPILE=true KEEP_COVER_RUNNING=1 ./tools/travis-test.sh -p small_tests -s true -e true
       - fetch_coverage_packages
-      - run:
-          name: Coverage
-          when: on_success
-          command: |
-            ./rebar3 codecov analyze
-            codecov --disable=gcov --env PRESET
-      - run:
-          name: Upload results
-          when: always
-          command: |
-              tools/circleci-prepare-log-dir.sh
-              if [ -n "${AWS_SECRET_ACCESS_KEY}" ]; then tools/circleci-upload-to-s3.sh; fi
+      - run_coverage_analysis
+      - upload_results_to_aws
 
   dialyzer:
     docker:
@@ -201,13 +208,7 @@ jobs:
             SKIP_AUTO_COMPILE=true KEEP_COVER_RUNNING=1 ./tools/travis-test.sh -p $PRESET -s false
           no_output_timeout: 40m
       - fetch_coverage_packages
-      - run:
-          name: Coverage
-          when: on_success
-          command: |
-            echo "Success!"
-            ./rebar3 codecov analyze
-            codecov --disable=gcov --env PRESET
+      - run_coverage_analysis
       - run:
           name: Build Failed - Logs
           when: on_fail
@@ -215,12 +216,7 @@ jobs:
             echo "Failure!"
             if [ -s _build/mim1/rel/mongooseim/log/crash.log ]; then cat _build/mim1/rel/mongooseim/log/crash.log; fi
             tail -100 _build/mim1/rel/mongooseim/log/mongooseim.log.1
-      - run:
-          name: Upload results
-          when: always
-          command: |
-              tools/circleci-prepare-log-dir.sh
-              if [ -n "${AWS_SECRET_ACCESS_KEY}" ]; then tools/circleci-upload-to-s3.sh; fi
+      - upload_results_to_aws
 
   docker_image:
     parallelism: 1

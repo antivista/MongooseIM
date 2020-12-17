@@ -333,4 +333,4 @@ workflows:
       #       - small_tests_22
       #       - small_tests_21
       #       - dialyzer
-      #       # - internal_mnesia
+      #       - internal_mnesia

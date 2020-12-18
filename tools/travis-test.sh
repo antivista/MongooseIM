@@ -78,10 +78,10 @@ choose_newest_directory() {
 }
 
 run_small_tests() {
-  tools/print-dots.sh start
-  tools/print-dots.sh monitor $$
+  # tools/print-dots.sh start
+  # tools/print-dots.sh monitor $$
   make ct
-  tools/print-dots.sh stop
+  # tools/print-dots.sh stop
   SMALL_SUMMARIES_DIRS=${BASE}/_build/test/logs/ct_run*
   SMALL_SUMMARIES_DIR=$(choose_newest_directory ${SMALL_SUMMARIES_DIRS})
   ${TOOLS}/summarise-ct-results ${SMALL_SUMMARIES_DIR}

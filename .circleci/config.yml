@@ -353,7 +353,7 @@ workflows:
       # ============= MOST RECENT VERSION TESTS =============
       - big_tests:
           name: internal_mnesia
-          executor: otp_21
+          executor: otp_23
           context: mongooseim-org
           preset: internal_mnesia
           db: "mnesia"

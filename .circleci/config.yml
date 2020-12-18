@@ -70,15 +70,38 @@ commands:
           paths:
             - ~/.cache/rebar3
             - ./_build/default/
-  restore_build:
+  restore_test_builds:
     steps:
       - run:
           name: Prepare for cache
           command: echo $ERLANG_VERSION > otp_version
       - restore_cache:
-          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
-      - restore_cache:
           key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
+      - attach_workspace: {at: ~/app}
+  restore_prod_build:
+    steps:
+      - restore_cache:
+          key: prod-build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
+  build_and_cache_prod_build:
+    steps:
+      - run:
+          name: Generate prod release
+          command: make rel
+      - save_cache:
+          key: prod-build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
+          paths: ~/app/_build/prod/rel/mongooseim
+  persist_artifacts_to_workspace:
+    steps:
+      - persist_to_workspace:
+          root: ~/app/
+          paths:
+            - "_build/mim1/*"
+            - "_build/mim2/*"
+            - "_build/mim3/*"
+            - "_build/reg1/*"
+            - "_build/fed1/*"
+            - "big_tests/_build/*"
+
 
 executors:
   otp_23:
@@ -116,15 +139,13 @@ jobs:
       - run:
           name: Generate development releases
           command: ./tools/build-releases.sh
-      - run:
-          name: Generate prod release
-          command: if [ <<parameters.build_prod>> ]; then make rel; fi
+      - when:
+          condition: << parameters.build_prod >>
+          steps: [ build_and_cache_prod_build ]
       - run:
           name: Build Big Tests
           command: tools/travis-build-tests.sh
-      - save_cache:
-          key: build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
-          paths: ~/app
+      - persist_artifacts_to_workspace
 
   small_tests:
     executor: << parameters.executor >>
@@ -136,7 +157,7 @@ jobs:
       PRESET: small_tests
     steps:
       - checkout
-      - restore_build
+      - restore_test_builds
       - run:
           name: Run Small Tests
           command: |
@@ -151,7 +172,7 @@ jobs:
     parallelism: 1
     steps:
       - checkout
-      - restore_build
+      - restore_test_builds
       - run:
           name: Run Dialyzer
           command: |
@@ -189,7 +210,7 @@ jobs:
       REDIS_VERSION: 3.2.10
     steps:
       - checkout
-      - restore_build
+      - restore_test_builds
       - install_dockerize
       - run:
           name: Setup database
@@ -227,7 +248,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - restore_build
+      - restore_prod_build
       - run:
           name: Execute Docker image build and upload
           command: tools/circle-build-and-push-docker.sh

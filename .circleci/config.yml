@@ -101,12 +101,7 @@ commands:
           root: ~/app/
           # paths: ["*"]
           paths:
-            - "_build/mim1/*"
-            - "_build/mim2/*"
-            - "_build/mim3/*"
-            - "_build/reg1/*"
-            - "_build/fed1/*"
-            - "_build/test/*"
+            - "_build/*"
             - "priv/"
             - "big_tests/_build/*"
 

@@ -8,7 +8,7 @@ commands:
   fetch_build_packages:
     steps:
     - run:
-        name: Install basic packages
+        name: Install packages necessary for building
         command: |
           sudo killall -9 apt-get || true && \
           echo "Acquire::ForceIPv4 'true';" | sudo tee -a /etc/apt/apt.conf.d/99force-ipv4 && \

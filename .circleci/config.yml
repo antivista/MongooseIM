@@ -80,13 +80,18 @@ commands:
       - attach_workspace: {at: ~/app}
   restore_prod_build:
     steps:
+      - run:
+          name: Prepare for cache
+          command: echo $ERLANG_VERSION > otp_version
       - restore_cache:
           key: prod-build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
   build_and_cache_prod_build:
     steps:
       - run:
           name: Generate prod release
-          command: make rel
+          command: |
+            echo $ERLANG_VERSION > otp_version
+            make rel
       - save_cache:
           key: prod-build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
           paths: ~/app/_build/prod/rel/mongooseim
@@ -94,14 +99,16 @@ commands:
     steps:
       - persist_to_workspace:
           root: ~/app/
-          paths: ["*"]
-            # - "_build/mim1/*"
-            # - "_build/mim2/*"
-            # - "_build/mim3/*"
-            # - "_build/reg1/*"
-            # - "_build/fed1/*"
-            # - "_build/test/*"
-            # - "big_tests/_build/*"
+          # paths: ["*"]
+          paths:
+            - "_build/mim1/*"
+            - "_build/mim2/*"
+            - "_build/mim3/*"
+            - "_build/reg1/*"
+            - "_build/fed1/*"
+            - "_build/test/*"
+            - "priv/"
+            - "big_tests/_build/*"
 
 
 executors:

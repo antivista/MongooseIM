@@ -183,8 +183,6 @@ jobs:
 
   big_tests:
     executor: << parameters.executor >>
-    docker:
-      - image: circleci/redis:6.0.5
     parallelism: 1
     parameters:
       executor:

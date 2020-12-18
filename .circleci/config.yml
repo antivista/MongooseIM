@@ -94,14 +94,14 @@ commands:
     steps:
       - persist_to_workspace:
           root: ~/app/
-          paths: ["*"]
-            # - "_build/mim1/*"
-            # - "_build/mim2/*"
-            # - "_build/mim3/*"
-            # - "_build/reg1/*"
-            # - "_build/fed1/*"
-            # - "_build/test/*"
-            # - "big_tests/_build/*"
+          paths:
+            - "_build/mim1/*"
+            - "_build/mim2/*"
+            - "_build/mim3/*"
+            - "_build/reg1/*"
+            - "_build/fed1/*"
+            - "_build/test/*"
+            - "big_tests/_build/*"
 
 
 executors:
@@ -216,12 +216,12 @@ jobs:
       - run:
           name: Setup database
           command: |
-            dockerize -wait tcp://localhost:6379 -timeout 60s # Wait for redis
+            # dockerize -wait tcp://localhost:6379 -timeout 60s # Wait for redis
             # dockerize -wait tcp://localhost:5672 -timeout 60s # Wait for rmq
             echo '127.0.0.1 muc.localhost' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost.bis' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost' | sudo tee -a /etc/hosts
-            redis-cli -h "127.0.0.1" ping
+            # redis-cli -h "127.0.0.1" ping
             # tools/travis-setup-db.sh
             # if [ $PRESET = ldap_mnesia ]; then sudo tools/travis-setup-ldap.sh; fi
       - run:
@@ -407,4 +407,4 @@ workflows:
             - small_tests_21
             - dialyzer
             - build_and_deploy_docs
-            - internal_mnesia
+            # - internal_mnesia

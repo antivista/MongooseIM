@@ -100,6 +100,7 @@ commands:
             - "_build/mim3/*"
             - "_build/reg1/*"
             - "_build/fed1/*"
+            - "_build/test/*"
             - "big_tests/_build/*"
 
 

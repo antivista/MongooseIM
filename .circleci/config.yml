@@ -94,14 +94,14 @@ commands:
     steps:
       - persist_to_workspace:
           root: ~/app/
-          paths:
-            - "_build/mim1/*"
-            - "_build/mim2/*"
-            - "_build/mim3/*"
-            - "_build/reg1/*"
-            - "_build/fed1/*"
-            - "_build/test/*"
-            - "big_tests/_build/*"
+          paths: ["*"]
+            # - "_build/mim1/*"
+            # - "_build/mim2/*"
+            # - "_build/mim3/*"
+            # - "_build/reg1/*"
+            # - "_build/fed1/*"
+            # - "_build/test/*"
+            # - "big_tests/_build/*"
 
 
 executors:

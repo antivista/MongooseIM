@@ -69,15 +69,14 @@ commands:
           key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
           paths:
             - ~/.cache/rebar3
-            - ./_build/default/
-  restore_test_builds:
+  restore_workspace:
     steps:
+      - attach_workspace: {at: ~/app}
       - run:
           name: Prepare for cache
           command: echo $ERLANG_VERSION > otp_version
       - restore_cache:
           key: deps-cache--{{ checksum "rebar.lock" }}--{{ checksum "big_tests/rebar.lock" }}--{{ checksum "otp_version" }}
-      - attach_workspace: {at: ~/app}
   restore_prod_build:
     steps:
       - run:
@@ -95,16 +94,12 @@ commands:
       - save_cache:
           key: prod-build-cache-{{ .Branch }}-{{ .Revision }}--{{ checksum "otp_version" }}
           paths: ~/app/_build/prod/rel/mongooseim
-  persist_artifacts_to_workspace:
+  persist_workspace:
     steps:
+      - run: git gc
       - persist_to_workspace:
           root: ~/app/
-          # paths: ["*"]
-          paths:
-            - "_build/*"
-            - "priv/"
-            - "big_tests/_build/*"
-
+          paths: ["*"]
 
 executors:
   otp_23:
@@ -148,7 +143,7 @@ jobs:
       - run:
           name: Build Big Tests
           command: tools/travis-build-tests.sh
-      - persist_artifacts_to_workspace
+      - persist_workspace
 
   small_tests:
     executor: << parameters.executor >>
@@ -159,8 +154,7 @@ jobs:
     environment:
       PRESET: small_tests
     steps:
-      - checkout
-      - restore_test_builds
+      - restore_workspace
       - run:
           name: Run Small Tests
           command: |
@@ -176,8 +170,7 @@ jobs:
         type: executor
     parallelism: 1
     steps:
-      - checkout
-      - restore_test_builds
+      - restore_workspace
       - run:
           name: Run Dialyzer
           command: |
@@ -212,8 +205,7 @@ jobs:
       TEST_SPEC: mam.spec
       REDIS_VERSION: 3.2.10
     steps:
-      - checkout
-      - restore_test_builds
+      - restore_workspace
       - install_dockerize
       - run:
           name: Setup database

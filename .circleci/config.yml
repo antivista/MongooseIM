@@ -237,7 +237,6 @@ jobs:
             echo '127.0.0.1 muc.localhost' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost.bis' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost' | sudo tee -a /etc/hosts
-            # redis-cli -h "127.0.0.1" ping
             # tools/travis-setup-db.sh
             # if [ $PRESET = ldap_mnesia ]; then sudo tools/travis-setup-ldap.sh; fi
       - run:

@@ -51,6 +51,12 @@ commands:
             rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
           environment:
             DOCKERIZE_VERSION: v0.6.1
+  dockerize_wait:
+    parameters: {port: {type: integer}}
+    steps:
+      - run:
+          name: Wait for port << parameters.port >>
+          command: dockerize -wait tcp://localhost:<< parameters.port >> -timeout 60s
   maybe_build_deps_and_cache:
     steps:
       - run:
@@ -179,6 +185,7 @@ jobs:
     steps:
       - restore_workspace
       - install_dockerize
+      - dockerize_wait: {port: 6379}
       - run:
           name: Run Small Tests
           command: |
@@ -231,10 +238,10 @@ jobs:
     steps:
       - restore_workspace
       - install_dockerize
+      - dockerize_wait: {port: 6379} # Wait for redis
       - run:
           name: Setup database
           command: |
-            dockerize -wait tcp://localhost:6379 -timeout 60s # Wait for redis
             # dockerize -wait tcp://localhost:5672 -timeout 60s # Wait for rmq
             echo '127.0.0.1 muc.localhost' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost.bis' | sudo tee -a /etc/hosts

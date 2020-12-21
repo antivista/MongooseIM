@@ -178,9 +178,11 @@ jobs:
       PRESET: small_tests
     steps:
       - restore_workspace
+      - install_dockerize
       - run:
           name: Run Small Tests
           command: |
+            dockerize -wait tcp://localhost:6379 -timeout 60s # Wait for redis
             SKIP_AUTO_COMPILE=true KEEP_COVER_RUNNING=1 ./tools/travis-test.sh -p small_tests -s true -e true
       - fetch_coverage_packages
       - run_coverage_analysis

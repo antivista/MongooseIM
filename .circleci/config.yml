@@ -101,23 +101,45 @@ commands:
           root: ~/app/
           paths: ["*"]
 
+references:
+  - &OTP23 cimg/elixir:1.11  # Contains Erlang 23.1
+  - &OTP22 cimg/elixir:1.10  # Contains Erlang 22.3.4
+  - &OTP21 cimg/elixir:1.8.2 # Contains Erlang 21.3.8.8
+
 executors:
+  # With REDIS
+  otp_23_redis:
+    working_directory: ~/app
+    docker:
+      - image: *OTP23
+      - image: circleci/redis:6.0.5
+  otp_22_redis:
+    working_directory: ~/app
+    docker:
+      - image: *OTP22
+      - image: circleci/redis:6.0.5
+  otp_21_redis:
+    working_directory: ~/app
+    docker:
+      - image: *OTP21
+      - image: circleci/redis:6.0.5
+
+  # JUST OTP
   otp_23:
-    docker:
-      - image: cimg/elixir:1.11  # Contains Erlang 23.1
     working_directory: ~/app
+    docker:
+      - image: *OTP23
   otp_22:
-    docker:
-      - image: cimg/elixir:1.10  # Contains Erlang 22.3.4
     working_directory: ~/app
+    docker:
+      - image: *OTP22
   otp_21:
-    docker:
-      - image: cimg/elixir:1.8.2 # Contains Erlang 21.3.8.8
     working_directory: ~/app
+    docker:
+      - image: *OTP21
 
 jobs:
   build:
-    parallelism: 1
     executor: << parameters.executor >>
     parameters:
       executor:
@@ -125,6 +147,7 @@ jobs:
       build_prod:
         type: boolean
         default: false
+    parallelism: 1
     environment:
       SKIP_RELEASE: 1
       SKIP_COV: 0
@@ -352,26 +375,26 @@ workflows:
       # ============= SMALL TESTS =============
       - small_tests:
           name: small_tests_23
-          executor: otp_23
+          executor: otp_23_redis
           context: mongooseim-org
           requires:
             - otp_23
       - small_tests:
           name: small_tests_22
-          executor: otp_22
+          executor: otp_22_redis
           context: mongooseim-org
           requires:
             - otp_22
       - small_tests:
           name: small_tests_21
-          executor: otp_21
+          executor: otp_21_redis
           context: mongooseim-org
           requires:
             - otp_21
       # ============= MOST RECENT VERSION TESTS =============
       - big_tests:
           name: internal_mnesia
-          executor: otp_23
+          executor: otp_23_redis
           context: mongooseim-org
           preset: internal_mnesia
           db: "mnesia"

@@ -4,11 +4,6 @@
 
 -include("mongoose_config_spec.hrl").
 
--type config_node() :: config_section() | config_list() | config_option().
--type config_section() :: #section{}.
--type config_list() :: #list{}.
--type config_option() :: #option{}.
-
 -export_type([config_node/0, config_section/0, config_list/0, config_option/0]).
 
 %% Config processing functions are annotated with TOML paths

@@ -30,6 +30,57 @@
 -type config() :: top_level_option() | config_error() | override().
 -type config_list() :: [config() | fun((ejabberd:server()) -> [config()])]. % see HOST_F
 
+%% only for leaves
+-type option_value() :: atom() | binary() | string() | float().
+-type option_type() :: boolean | binary | string | atom | int_or_infinity
+                     | int_or_atom | integer | float.
+
+%% The format describes how the TOML Key and the parsed and processed Value
+%% are packed into the resulting list of options.
+-type config_format() :: top_level_config_format() | config_option_format().
+
+%% Config record, acl record or 'override' tuple
+-type top_level_config_format() ::
+      % {override, Value}
+        override
+
+      %% Config records, see the type below for details
+      | config_record_format()
+
+      %% Uses the provided format for each {K, V} in Value, which has to be a list
+      | {foreach, config_record_format()}
+
+      %% Replaces the key with NewKey
+      | {config_record_format(), NewKey :: term()}
+
+      %% config record with key = {Tag, Key, Host} when inside host_config
+      %%                    key = {Tag, Key, global} at the top level
+      | {host_or_global_config, Tag :: term()}
+
+      %% Like above, but for an acl record
+      | host_or_global_acl.
+
+%% Config record: #config{} or #local_config{}
+-type config_record_format() ::
+        %% config record
+        config
+
+        %% local_config record
+      | local_config
+
+        %% local_config record with key = {Key, Host} when inside host_config
+        %% Outside host_config it becomes a list of records - one for each configured host
+      | host_local_config.
+
+%% Nested config option - key-value pair or just a value
+-type config_option_format() ::
+        default      % {Key, Value} for section items, Value for list items
+      | item         % only Value
+      | skip         % nothing - the item is ignored
+      | none         % no formatting - Value must be a list and is injected into the parent list
+      | {kv, NewKey :: term()} % {NewKey, Value} - replaces the key with NewKey
+      | prepend_key. % {Key, V1, ..., Vn} when Value = {V1, ..., Vn}
+
 %% Path from the currently processed config node to the root
 %%   - toml_key(): key in a toml_section()
 %%   - item: item in a list
@@ -118,6 +169,7 @@ handle(Path, Value, Spec) ->
                         try_step(StepName, Path, Value, Acc, Spec)
                 end, Value, [parse, validate, process, format]).
 
+-spec handle_step(step(), path(), toml_value(), config_node()) -> option().
 handle_step(parse, Path, Value, Spec) ->
     ParsedValue = case Spec of
                       #section{} = Spec when is_map(Value) ->
@@ -141,17 +193,20 @@ handle_step(process, Path, ParsedValue, Spec) ->
 handle_step(format, Path, ProcessedValue, Spec) ->
     format(Path, ProcessedValue, format_spec(Spec)).
 
+-spec check_required_
 check_required_keys(#section{required = all, items = Items}, Section) ->
     ensure_keys(maps:keys(Items), Section);
 check_required_keys(#section{required = Required}, Section) ->
     ensure_keys(Required, Section).
 
+-spec validate_keys(config_node(), toml_section()) -> any().
 validate_keys(#section{validate_keys = undefined}, _Section) -> ok;
 validate_keys(#section{validate_keys = Validator}, Section) ->
     lists:foreach(fun(Key) ->
                           mongoose_config_validator_toml:validate(b2a(Key), atom, Validator)
                   end, maps:keys(Section)).
 
+-spec validate(option(), config_node()) -> any().
 validate(Value, #section{validate = Validator}) ->
     mongoose_config_validator_toml:validate_section(Value, Validator);
 validate(Value, #list{validate = Validator}) ->
@@ -159,14 +214,17 @@ validate(Value, #list{validate = Validator}) ->
 validate(Value, #option{type = Type, validate = Validator}) ->
     mongoose_config_validator_toml:validate(Value, Type, Validator).
 
+-spec process_spec(config_node()) -> option_processor().
 process_spec(#section{process = Process}) -> Process;
 process_spec(#list{process = Process}) -> Process;
 process_spec(#option{process = Process}) -> Process.
 
+-spec process(path(), option(), option_processor()) -> option().
 process(_Path, V, undefined) -> V;
 process(_Path, V, F) when is_function(F, 1) -> F(V);
 process(Path, V, F) when is_function(F, 2) -> F(Path, V).
 
+-spec convert(toml_value()) -> option_value().
 convert(V, boolean) when is_boolean(V) -> V;
 convert(V, binary) when is_binary(V) -> V;
 convert(V, string) -> binary_to_list(V);
@@ -178,10 +236,12 @@ convert(V, int_or_atom) -> b2a(V);
 convert(V, integer) when is_integer(V) -> V;
 convert(V, float) when is_float(V) -> V.
 
+-spec format_spec(config_node()) -> config_format().
 format_spec(#section{format = Format}) -> Format;
 format_spec(#list{format = Format}) -> Format;
 format_spec(#option{format = Format}) -> Format.
 
+-spec format(path(), [{toml_key(), option()}], config_format()) -> option().
 format(Path, KVs, {foreach, Format}) when is_atom(Format) ->
     Keys = lists:map(fun({K, _}) -> K end, KVs),
     mongoose_config_validator_toml:validate_list(Keys, unique),

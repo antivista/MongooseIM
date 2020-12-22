@@ -119,6 +119,8 @@ executors:
     docker:
       - image: *OTP23
       - image: circleci/redis:6.0.5
+      - image: minio/minio
+      - image: rabbitmq:3.7-alpine
   otp_22_redis:
     working_directory: ~/app
     docker:
@@ -239,10 +241,10 @@ jobs:
       - restore_workspace
       - install_dockerize
       - dockerize_wait: {port: 6379} # Wait for redis
+      - dockerize_wait: {port: 5672} # Wait for rmq
       - run:
           name: Setup database
           command: |
-            # dockerize -wait tcp://localhost:5672 -timeout 60s # Wait for rmq
             echo '127.0.0.1 muc.localhost' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost.bis' | sudo tee -a /etc/hosts
             echo '127.0.0.1 localhost' | sudo tee -a /etc/hosts

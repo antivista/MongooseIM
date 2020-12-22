@@ -81,14 +81,14 @@ init_per_group(unset_size, Config) ->
     dynamic_modules:start(host(), mod_http_upload, [{max_file_size, undefined} | ?S3_OPTS]),
     escalus:create_users(Config, escalus:get_users([bob]));
 init_per_group(real_upload_without_acl, Config) ->
-    case is_minio_running(Config) of
+    case mongoose_helper:is_minio_running(Config) of
         true ->
             dynamic_modules:start(host(), mod_http_upload, ?MINIO_OPTS(false)),
             escalus:create_users(Config, escalus:get_users([bob]));
         false -> {skip, "minio is not running"}
     end;
 init_per_group(real_upload_with_acl, Config) ->
-    case is_minio_running(Config) of
+    case mongoose_helper:is_minio_running(Config) of
         true ->
             dynamic_modules:start(host(), mod_http_upload, ?MINIO_OPTS(true)),
             [{with_acl, true} | escalus:create_users(Config, escalus:get_users([bob]))];
@@ -312,15 +312,6 @@ escapes_urls_once(Config) ->
 %%--------------------------------------------------------------------
 %% Test helpers
 %%--------------------------------------------------------------------
-is_minio_running(Config) ->
-    case proplists:get_value(preset, Config, undefined) of
-        undefined -> false;
-        Preset ->
-            PresetAtom = list_to_existing_atom(Preset),
-            DBs = ct:get_config({ejabberd_presets, PresetAtom, dbs}, []),
-            lists:member(minio, DBs)
-    end.
-
 create_slot_request_stanza(Server, Filename, Size, ContentType, Namespace) when is_integer(Size) ->
     create_slot_request_stanza(Server, Filename, integer_to_binary(Size), ContentType, Namespace);
 create_slot_request_stanza(Server, Filename, BinSize, ContentType, Namespace) ->

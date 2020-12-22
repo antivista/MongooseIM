@@ -57,6 +57,21 @@ commands:
       - run:
           name: Wait for port << parameters.port >>
           command: dockerize -wait tcp://localhost:<< parameters.port >> -timeout 60s
+  prepare_minio:
+    steps:
+      - run:
+          name: Install minio client, prepare minio
+          environment:
+            - MINIO_DOCKER_NAME: "mongooseim-minio"
+            - MINIO_ACCESS_KEY: "AKIAIAOAONIULXQGMOUA"
+            - MINIO_SECRET_KEY: "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"
+            - MINIO_BUCKET: "mybucket"
+          command: |
+            curl -sSL https://dl.minio.io/client/mc/release/linux-amd64/mc -o ./mc
+            chmod +x ./mc
+            ./mc config host add ${MINIO_DOCKER_NAME} http://${MINIO_DOCKER_NAME}:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
+            ./mc mb ${MINIO_DOCKER_NAME}/${MINIO_BUCKET}
+            ./mc policy set download "${MINIO_DOCKER_NAME}/${MINIO_BUCKET}"
   maybe_build_deps_and_cache:
     steps:
       - run:
@@ -119,7 +134,12 @@ executors:
     docker:
       - image: *OTP23
       - image: circleci/redis:6.0.5
-      - image: minio/minio
+      - image: minio/minio:latest
+        name: mongooseim-minio
+        environment:
+          - MINIO_ACCESS_KEY: "AKIAIAOAONIULXQGMOUA"
+          - MINIO_SECRET_KEY: "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"
+        command: ["server", "/data"]
       - image: rabbitmq:3.7-alpine
   otp_22_redis:
     working_directory: ~/app
@@ -242,6 +262,7 @@ jobs:
       - install_dockerize
       - dockerize_wait: {port: 6379} # Wait for redis
       - dockerize_wait: {port: 5672} # Wait for rmq
+      - prepare_minio
       - run:
           name: Setup database
           command: |

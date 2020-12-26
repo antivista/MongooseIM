@@ -62,16 +62,16 @@ commands:
       - run:
           name: Install minio client, prepare minio
           environment:
-            - MINIO_DOCKER_NAME: "mongooseim-minio"
+            - MINIO_HOSTNAME: "mongooseim-minio"
             - MINIO_ACCESS_KEY: "AKIAIAOAONIULXQGMOUA"
             - MINIO_SECRET_KEY: "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"
             - MINIO_BUCKET: "mybucket"
           command: |
             curl -sSL https://dl.minio.io/client/mc/release/linux-amd64/mc -o ./mc
             chmod +x ./mc
-            ./mc config host add ${MINIO_DOCKER_NAME} http://${MINIO_DOCKER_NAME}:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
-            ./mc mb ${MINIO_DOCKER_NAME}/${MINIO_BUCKET}
-            ./mc policy set download "${MINIO_DOCKER_NAME}/${MINIO_BUCKET}"
+            ./mc config host add ${MINIO_HOSTNAME} http://127.0.0.1:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
+            ./mc mb ${MINIO_HOSTNAME}/${MINIO_BUCKET}
+            ./mc policy set download "${MINIO_HOSTNAME}/${MINIO_BUCKET}"
   maybe_build_deps_and_cache:
     steps:
       - run:
@@ -135,7 +135,6 @@ executors:
       - image: *OTP23
       - image: circleci/redis:6.0.5
       - image: minio/minio:latest
-        name: mongooseim-minio
         environment:
           - MINIO_ACCESS_KEY: "AKIAIAOAONIULXQGMOUA"
           - MINIO_SECRET_KEY: "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"
